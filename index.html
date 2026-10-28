@@ -1,0 +1,789 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบเช็กชื่อเข้าแถว</title>
+
+<style>
+ { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Tahoma, Arial, sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+header {
+  background: #2563eb;
+  color: white;
+  padding: 22px 15px;
+  text-align: center;
+}
+
+header h1 { margin: 0 0 8px; }
+
+.container {
+  max-width: 1200px;
+  margin: 25px auto;
+  padding: 0 15px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 3px 12px #0000000c;
+}
+
+input, select, button {
+  font: inherit;
+  padding: 10px;
+  border-radius: 7px;
+}
+
+input, select {
+  border: 1px solid #cbd5e1;
+  width: 100%;
+  margin: 5px 0 12px;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+  margin: 3px;
+}
+
+button:hover { opacity: .88; }
+.danger { background: #dc2626; }
+.success { background: #15803d; }
+.gray { background: #64748b; }
+.hidden { display: none !important; }
+
+.login-box {
+  max-width: 420px;
+  margin: 45px auto;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  background: white;
+  padding: 18px 10px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 3px 12px #0000000c;
+}
+
+.stat strong {
+  display: block;
+  font-size: 27px;
+  margin-top: 8px;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 850px;
+}
+
+th, td {
+  padding: 11px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+th { background: #eff6ff; }
+
+td select { margin: 0; min-width: 85px; }
+
+.student-photo {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e2e8f0;
+}
+
+.actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.note {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.count-number {
+  font-weight: bold;
+  color: #15803d;
+}
+
+@media (max-width: 750px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  header h1 { font-size: 22px; }
+  .card { padding: 14px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>ระบบเช็กชื่อเข้าแถว</h1>
+  <div>ระบบบันทึกการเข้าแถวของนักเรียน</div>
+</header>
+
+<div class="container" id="loginPage">
+  <div class="card login-box">
+    <h2>เข้าสู่ระบบ</h2>
+
+    <form id="loginForm">
+      <label for="username">ชื่อผู้ใช้</label>
+      <input id="username" required autocomplete="username"
+             placeholder="กรอกชื่อผู้ใช้">
+
+      <label for="password">รหัสผ่าน</label>
+      <input id="password" type="password" required
+             autocomplete="current-password"
+             placeholder="กรอกรหัสผ่าน">
+
+      <button type="submit" style="width:100%">
+        เข้าสู่ระบบ
+      </button>
+    </form>
+
+    <button class="gray" style="width:100%;margin:8px 0"
+            onclick="resetAdminLogin()">
+      รีเซ็ตบัญชีแอดมิน
+    </button>
+
+    <p class="note">
+      บัญชีเริ่มต้นสำหรับทดสอบ<br>
+      แอดมิน: admin / admin123<br>
+      นักเรียน: student / student123
+    </p>
+  </div>
+</div>
+
+<div class="container hidden" id="mainPage">
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;
+                align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="margin:0 0 6px" id="welcomeText">ระบบเช็กชื่อ</h2>
+        <span id="roleText"></span>
+      </div>
+      <button class="danger" onclick="logout()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">นักเรียนทั้งหมด
+      <strong id="totalCount">0</strong>
+    </div>
+    <div class="stat">มาในวันที่เลือก
+      <strong id="presentCount">0</strong>
+    </div>
+    <div class="stat">สายในวันที่เลือก
+      <strong id="lateCount">0</strong>
+    </div>
+    <div class="stat">ขาดในวันที่เลือก
+      <strong id="absentCount">0</strong>
+    </div>
+    <div class="stat">มาสะสมทั้งหมด
+      <strong id="totalAccumulated">0</strong>
+    </div>
+  </div>
+
+  <div class="card admin-only">
+    <h3>เพิ่มรายชื่อนักเรียน</h3>
+
+    <form id="studentForm">
+      <label for="studentId">รหัสนักเรียน</label>
+      <input id="studentId" required placeholder="เช่น 001">
+
+      <label for="studentName">ชื่อ-นามสกุล</label>
+      <input id="studentName" required placeholder="กรอกชื่อ-นามสกุล">
+
+      <label for="studentClass">ห้องเรียน</label>
+      <input id="studentClass" required placeholder="เช่น ปวช.2/1">
+
+      <label for="studentPhoto">รูปภาพนักเรียน (ไม่บังคับ)</label>
+      <input id="studentPhoto" type="file" accept="image/*">
+
+      <button type="submit">เพิ่มนักเรียน</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>รายชื่อนักเรียนและสถานะเข้าแถว</h3>
+
+    <label for="filterClass">ค้นหาตามห้องเรียน</label>
+    <input id="filterClass" placeholder="พิมพ์ชื่อห้องเพื่อค้นหา">
+
+    <label for="attendanceDate">วันที่บันทึก</label>
+    <input type="date" id="attendanceDate">
+
+    <div class="actions admin-only" style="margin-bottom:12px">
+      <button onclick="exportCSV()">ส่งออกข้อมูล CSV</button>
+      <button class="success" onclick="markAllPresent()">
+        ตั้งทุกคนเป็นมา
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>รูป</th>
+            <th>รหัส</th>
+            <th>ชื่อ-นามสกุล</th>
+            <th>ห้อง</th>
+            <th>สถานะวันที่เลือก</th>
+            <th>จำนวนครั้งที่มาสะสม</th>
+            <th class="admin-only">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+      </table>
+    </div>
+
+    <p class="note" id="tableNote"></p>
+    <p class="note">
+      จำนวนครั้งสะสมคำนวณจากทุกวันที่บันทึกสถานะเป็น “มา”
+      โดยนับสูงสุดวันละ 1 ครั้งต่อคน
+    </p>
+  </div>
+
+  <div class="card admin-only">
+    <h3>เปลี่ยนบัญชีแอดมิน</h3>
+
+    <form id="changePasswordForm">
+      <label for="newUsername">ชื่อผู้ใช้ใหม่</label>
+      <input id="newUsername" required>
+
+      <label for="oldPassword">รหัสผ่านเดิม</label>
+      <input id="oldPassword" type="password" required>
+
+      <label for="newPassword">รหัสผ่านใหม่</label>
+      <input id="newPassword" type="password" required minlength="6">
+
+      <button type="submit">บันทึกบัญชีใหม่</button>
+    </form>
+
+    <p class="note">รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร</p>
+  </div>
+</div>
+
+<script>
+const DB_KEY = "assemblyAttendanceDB_v3";
+
+const DEFAULT_ADMIN = {
+  username: "admin",
+  password: "admin123"
+};
+
+const STUDENT_USERNAME = "student";
+const STUDENT_PASSWORD = "student123";
+
+let currentRole = "";
+let currentUser = "";
+
+function loadDB() {
+  try {
+    const saved = localStorage.getItem(DB_KEY);
+
+    if (saved) {
+      const data = JSON.parse(saved);
+
+      if (data && Array.isArray(data.students)) {
+        data.admin = data.admin || { ...DEFAULT_ADMIN };
+        data.attendance = data.attendance || {};
+        return data;
+      }
+    }
+  } catch (error) {
+    console.error("อ่านข้อมูลเดิมไม่สำเร็จ", error);
+  }
+
+  return {
+    admin: { ...DEFAULT_ADMIN },
+    students: [],
+    attendance: {}
+  };
+}
+
+let db = loadDB();
+
+function saveDB() {
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    return true;
+  } catch (error) {
+    alert("บันทึกข้อมูลไม่สำเร็จ พื้นที่จัดเก็บอาจเต็ม");
+    return false;
+  }
+}
+
+function today() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+document.getElementById("attendanceDate").value = today();
+
+function resetAdminLogin() {
+  if (!confirm("รีเซ็ตบัญชีแอดมินเป็น admin / admin123 ใช่หรือไม่?")) {
+    return;
+  }
+
+  db = loadDB();
+  db.admin = { ...DEFAULT_ADMIN };
+
+  if (saveDB()) {
+    alert("รีเซ็ตบัญชีแล้ว กรุณาเข้าสู่ระบบใหม่");
+    document.getElementById("username").value = "admin";
+    document.getElementById("password").value = "";
+  }
+}
+
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  db = loadDB();
+
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+
+  if (username === db.admin.username && password === db.admin.password) {
+    currentRole = "admin";
+    currentUser = username;
+  } else if (
+    username === STUDENT_USERNAME &&
+    password === STUDENT_PASSWORD
+  ) {
+    currentRole = "student";
+    currentUser = username;
+  } else {
+    alert("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+    return;
+  }
+
+  showMainPage();
+});
+
+function showMainPage() {
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("mainPage").classList.remove("hidden");
+
+  document.getElementById("welcomeText").textContent =
+    currentRole === "admin" ? "ยินดีต้อนรับแอดมิน" : "ยินดีต้อนรับนักเรียน";
+
+  document.getElementById("roleText").textContent =
+    currentRole === "admin" ? "สิทธิ์ผู้ดูแลระบบ" : "สิทธิ์ดูข้อมูลเท่านั้น";
+
+  document.querySelectorAll(".admin-only").forEach(el => {
+    el.classList.toggle("hidden", currentRole !== "admin");
+  });
+
+  document.getElementById("tableNote").textContent =
+    currentRole === "student"
+      ? "บัญชีนักเรียนสามารถดูข้อมูลได้เท่านั้น"
+      : "สามารถแก้ไขสถานะและจัดการรายชื่อได้";
+
+  renderTable();
+}
+
+function logout() {
+  currentRole = "";
+  currentUser = "";
+  document.getElementById("mainPage").classList.add("hidden");
+  document.getElementById("loginPage").classList.remove("hidden");
+  document.getElementById("password").value = "";
+}
+
+function getStatus(studentId, date) {
+  return (db.attendance[date] || {})[studentId] || "ขาด";
+}
+
+/* ระบบนับจำนวนครั้งสะสมรายคน */
+function getAccumulatedCount(studentId) {
+  let count = 0;
+
+  Object.values(db.attendance).forEach(day => {
+    if (day && day[studentId] === "มา") {
+      count++;
+    }
+  });
+
+  return count;
+}
+
+function setStatus(studentId, status) {
+  if (currentRole !== "admin") return;
+
+  const date = document.getElementById("attendanceDate").value || today();
+
+  if (!db.attendance[date]) {
+    db.attendance[date] = {};
+  }
+
+  db.attendance[date][studentId] = status;
+
+  if (saveDB()) renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById("studentTable");
+  tbody.innerHTML = "";
+
+  const date = document.getElementById("attendanceDate").value || today();
+  const filter = document.getElementById("filterClass").value.trim().toLowerCase();
+
+  const students = db.students.filter(student =>
+    student.className.toLowerCase().includes(filter)
+  );
+
+  students.forEach(student => {
+    const tr = document.createElement("tr");
+
+    const photoCell = document.createElement("td");
+    const photo = document.createElement("img");
+    photo.className = "student-photo";
+    photo.alt = "รูปนักเรียน";
+
+    if (student.photo) {
+      photo.src = student.photo;
+    } else {
+      photo.src = "data:image/svg+xml," + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">' +
+        '<rect width="100%" height="100%" fill="#e2e8f0"/>' +
+        '<circle cx="30" cy="22" r="11" fill="#94a3b8"/>' +
+        '<path d="M8 58 Q8 36 30 36 Q52 36 52 58" fill="#94a3b8"/>' +
+        '</svg>'
+      );
+    }
+
+    photoCell.appendChild(photo);
+    tr.appendChild(photoCell);
+
+    addTextCell(tr, student.id);
+    addTextCell(tr, student.name);
+    addTextCell(tr, student.className);
+
+    const statusCell = document.createElement("td");
+    const status = getStatus(student.id, date);
+
+    if (currentRole === "admin") {
+      const select = document.createElement("select");
+
+      ["มา", "สาย", "ขาด", "ลา"].forEach(value => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+
+      select.value = status;
+      select.addEventListener("change", () => {
+        setStatus(student.id, select.value);
+      });
+
+      statusCell.appendChild(select);
+    } else {
+      statusCell.textContent = status;
+    }
+
+    tr.appendChild(statusCell);
+
+    // แสดงจำนวนครั้งสะสมของนักเรียนแต่ละคน
+    const countCell = document.createElement("td");
+    countCell.className = "count-number";
+    countCell.textContent = getAccumulatedCount(student.id) + " ครั้ง";
+    tr.appendChild(countCell);
+
+    const actionCell = document.createElement("td");
+    actionCell.className = "admin-only";
+
+    if (currentRole === "admin") {
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const editButton = document.createElement("button");
+      editButton.textContent = "แก้ไข";
+      editButton.onclick = () => editStudent(student.id);
+
+      const photoButton = document.createElement("button");
+      photoButton.textContent = "เปลี่ยนรูป";
+      photoButton.className = "gray";
+      photoButton.onclick = () => changePhoto(student.id);
+
+      const deleteButton = document.createElement("button");
+      deleteButton.textContent = "ลบ";
+      deleteButton.className = "danger";
+      deleteButton.onclick = () => deleteStudent(student.id);
+
+      actions.append(editButton, photoButton, deleteButton);
+      actionCell.appendChild(actions);
+    }
+
+    tr.appendChild(actionCell);
+    tbody.appendChild(tr);
+  });
+
+  updateStats(date);
+}
+
+function addTextCell(row, value) {
+  const td = document.createElement("td");
+  td.textContent = value;
+  row.appendChild(td);
+}
+
+function updateStats(date) {
+  document.getElementById("totalCount").textContent = db.students.length;
+
+  let present = 0;
+  let late = 0;
+  let absent = 0;
+  let accumulated = 0;
+
+  db.students.forEach(student => {
+    const status = getStatus(student.id, date);
+
+    if (status === "มา") present++;
+    if (status === "สาย") late++;
+    if (status === "ขาด") absent++;
+
+    accumulated += getAccumulatedCount(student.id);
+  });
+
+  document.getElementById("presentCount").textContent = present;
+  document.getElementById("lateCount").textContent = late;
+  document.getElementById("absentCount").textContent = absent;
+  document.getElementById("totalAccumulated").textContent = accumulated;
+}
+
+function readImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById("studentForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  if (currentRole !== "admin") return;
+
+  const id = document.getElementById("studentId").value.trim();
+  const name = document.getElementById("studentName").value.trim();
+  const className = document.getElementById("studentClass").value.trim();
+  const file = document.getElementById("studentPhoto").files[0];
+
+  if (db.students.some(student => student.id === id)) {
+    alert("รหัสนักเรียนนี้มีอยู่แล้ว");
+    return;
+  }
+
+  let photo = "";
+
+  if (file) {
+    if (!file.type.startsWith("image/")) {
+      alert("กรุณาเลือกไฟล์รูปภาพ");
+      return;
+    }
+
+    try {
+      photo = await readImage(file);
+    } catch {
+      alert("อ่านรูปภาพไม่สำเร็จ");
+      return;
+    }
+  }
+
+  db.students.push({ id, name, className, photo });
+
+  if (saveDB()) {
+    this.reset();
+    renderTable();
+    alert("เพิ่มรายชื่อนักเรียนแล้ว");
+  }
+});
+
+function editStudent(id) {
+  if (currentRole !== "admin") return;
+
+  const student = db.students.find(s => s.id === id);
+  if (!student) return;
+
+  const name = prompt("แก้ไขชื่อ-นามสกุล", student.name);
+  if (name === null) return;
+
+  const className = prompt("แก้ไขห้องเรียน", student.className);
+  if (className === null) return;
+
+  if (!name.trim() || !className.trim()) {
+    alert("กรุณากรอกข้อมูลให้ครบ");
+    return;
+  }
+
+  student.name = name.trim();
+  student.className = className.trim();
+
+  if (saveDB()) renderTable();
+}
+
+function changePhoto(id) {
+  if (currentRole !== "admin") return;
+
+  const student = db.students.find(s => s.id === id);
+  if (!student) return;
+
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+
+  fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("กรุณาเลือกไฟล์รูปภาพ");
+      return;
+    }
+
+    try {
+      student.photo = await readImage(file);
+      if (saveDB()) renderTable();
+    } catch {
+      alert("อ่านรูปภาพไม่สำเร็จ");
+    }
+  };
+
+  fileInput.click();
+}
+
+function deleteStudent(id) {
+  if (currentRole !== "admin") return;
+  if (!confirm("ต้องการลบนักเรียนคนนี้หรือไม่?")) return;
+
+  db.students = db.students.filter(student => student.id !== id);
+
+  Object.keys(db.attendance).forEach(date => {
+    delete db.attendance[date][id];
+  });
+
+  if (saveDB()) renderTable();
+}
+
+function markAllPresent() {
+  if (currentRole !== "admin") return;
+  if (!confirm("ตั้งสถานะนักเรียนทุกคนเป็น มา ใช่หรือไม่?")) return;
+
+  const date = document.getElementById("attendanceDate").value || today();
+
+  if (!db.attendance[date]) db.attendance[date] = {};
+
+  db.students.forEach(student => {
+    db.attendance[date][student.id] = "มา";
+  });
+
+  if (saveDB()) renderTable();
+}
+
+document.getElementById("filterClass").addEventListener("input", renderTable);
+document.getElementById("attendanceDate").addEventListener("change", renderTable);
+
+document.getElementById("changePasswordForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  if (currentRole !== "admin") return;
+
+  const username = document.getElementById("newUsername").value.trim();
+  const oldPassword = document.getElementById("oldPassword").value;
+  const newPassword = document.getElementById("newPassword").value;
+
+  if (oldPassword !== db.admin.password) {
+    alert("รหัสผ่านเดิมไม่ถูกต้อง");
+    return;
+  }
+
+  if (!username || newPassword.length < 6) {
+    alert("กรุณากรอกชื่อผู้ใช้ และรหัสผ่านใหม่อย่างน้อย 6 ตัว");
+    return;
+  }
+
+  db.admin.username = username;
+  db.admin.password = newPassword;
+
+  if (saveDB()) {
+    this.reset();
+    currentUser = username;
+    alert("เปลี่ยนบัญชีแอดมินเรียบร้อยแล้ว");
+  }
+});
+
+function exportCSV() {
+  if (currentRole !== "admin") return;
+
+  const date = document.getElementById("attendanceDate").value || today();
+
+  const rows = [
+    [
+      "วันที่",
+      "รหัสนักเรียน",
+      "ชื่อ-นามสกุล",
+      "ห้องเรียน",
+      "สถานะวันที่เลือก",
+      "จำนวนครั้งที่มาสะสม"
+    ],
+    ...db.students.map(student => [
+      date,
+      student.id,
+      student.name,
+      student.className,
+      getStatus(student.id, date),
+      getAccumulatedCount(student.id)
+    ])
+  ];
+
+  const csv = "\uFEFF" + rows.map(row =>
+    row.map(value =>
+      '"' + String(value).replace(/"/g, '""') + '"'
+    ).join(",")
+  ).join("\r\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "รายงานเข้าแถว-" + date + ".csv";
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+</script>
+
+</body>
+</html>
